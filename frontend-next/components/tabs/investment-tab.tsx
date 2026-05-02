@@ -16,6 +16,7 @@ import {
   TrendingUp,
   TrendingDown,
   ExternalLink,
+  ArrowLeftRight,
 } from 'lucide-react';
 import type { PortfolioData } from '@/hooks/use-portfolio-data';
 import type { Holding } from '@/lib/api';
@@ -29,6 +30,8 @@ import {
 import { RadialBarChart } from '@/components/radial-bar-chart';
 import { CardSpinner, EmptyState } from '@/components/data-state';
 import { StockDetailDialog } from '@/components/stock-detail-dialog';
+import { TradeDialog } from '@/components/trade-dialog';
+import { TickerLogo } from '@/components/ticker-logo';
 
 type Period = '1M' | '3M' | '6M' | 'YTD' | '1Y' | 'ALL';
 type ProfitPeriod = '1M' | '3M' | '6M' | 'YTD' | '1Y' | 'ALL';
@@ -82,13 +85,23 @@ function filterHistory(history: { snapshot_date: string; total_value: number }[]
   }));
 }
 
-export function InvestmentTab({ data }: { data: PortfolioData }) {
+export function InvestmentTab({
+  data,
+  onAfterTrade,
+}: {
+  data: PortfolioData;
+  onAfterTrade?: () => void | Promise<void>;
+}) {
   const { loading, summary, history, holdings, news } = data;
   const [period, setPeriod] = useState<Period>('1Y');
   const [profitPeriod, setProfitPeriod] = useState<ProfitPeriod>('ALL');
   const [profitPeriodOpen, setProfitPeriodOpen] = useState(false);
 
   const [activeTicker, setActiveTicker] = useState<string | null>(null);
+  const [quickTradeHolding, setQuickTradeHolding] = useState<Holding | null>(
+    null,
+  );
+  const [quickTradeOpen, setQuickTradeOpen] = useState(false);
   const activeHolding = useMemo(
     () => holdings.find((h) => h.ticker === activeTicker) ?? null,
     [activeTicker, holdings],
@@ -461,50 +474,76 @@ export function InvestmentTab({ data }: { data: PortfolioData }) {
             />
           ) : (
             <div className="space-y-2">
-              {myAssets.map((asset) => (
-                <button
-                  key={asset.ticker}
-                  onClick={() => setActiveTicker(asset.ticker)}
-                  className="w-full flex items-center justify-between text-left px-2 py-1.5 rounded-lg hover:bg-gray-50 transition"
-                >
-                  <div className="flex items-center gap-3 min-w-0">
-                    <div
-                      className="w-10 h-10 rounded-xl flex items-center justify-center text-white font-bold text-sm shrink-0"
-                      style={{ backgroundColor: asset.color }}
+              {myAssets.map((asset) => {
+                const rowHolding =
+                  holdings.find((h) => h.ticker === asset.ticker) ?? null;
+                return (
+                  <div
+                    key={asset.ticker}
+                    className="flex items-stretch gap-1 rounded-lg hover:bg-gray-50 transition"
+                  >
+                    <button
+                      type="button"
+                      onClick={() => setActiveTicker(asset.ticker)}
+                      className="flex-1 flex items-center justify-between text-left px-2 py-1.5 min-w-0"
                     >
-                      {asset.ticker[0]}
-                    </div>
-                    <div className="min-w-0">
-                      <p className="font-semibold text-sm truncate">
-                        {asset.ticker}
-                      </p>
-                      <p className="text-xs text-gray-500 truncate">
-                        {asset.name} · {asset.percentage.toFixed(1)}%
-                      </p>
-                    </div>
+                      <div className="flex items-center gap-3 min-w-0">
+                        <TickerLogo
+                          ticker={asset.ticker}
+                          color={asset.color}
+                          size="sm"
+                          rounded="lg"
+                          className="shrink-0"
+                        />
+                        <div className="min-w-0">
+                          <p className="font-semibold text-sm truncate">
+                            {asset.ticker}
+                          </p>
+                          <p className="text-xs text-gray-500 truncate">
+                            {asset.name} · {asset.percentage.toFixed(1)}%
+                          </p>
+                        </div>
+                      </div>
+                      <div className="text-right shrink-0 ml-2">
+                        <p className="font-semibold text-sm tabular-nums">
+                          {fmtMoney(asset.value)}
+                        </p>
+                        <p
+                          className={`text-xs font-medium flex items-center justify-end gap-0.5 ${
+                            asset.change >= 0
+                              ? 'text-green-600'
+                              : 'text-rose-500'
+                          }`}
+                        >
+                          {asset.change >= 0 ? (
+                            <TrendingUp className="w-3 h-3" />
+                          ) : (
+                            <TrendingDown className="w-3 h-3" />
+                          )}
+                          {fmtPct(asset.change, {
+                            withSign: true,
+                            decimals: 2,
+                          })}
+                        </p>
+                      </div>
+                    </button>
+                    {rowHolding && (
+                      <button
+                        type="button"
+                        title={`Trade ${asset.ticker}`}
+                        aria-label={`Trade ${asset.ticker}`}
+                        onClick={() => {
+                          setQuickTradeHolding(rowHolding);
+                          setQuickTradeOpen(true);
+                        }}
+                        className="shrink-0 self-center p-2 rounded-lg text-gray-500 hover:bg-gray-100 hover:text-gray-800 transition-colors"
+                      >
+                        <ArrowLeftRight className="w-4 h-4" />
+                      </button>
+                    )}
                   </div>
-                  <div className="text-right">
-                    <p className="font-semibold text-sm tabular-nums">
-                      {fmtMoney(asset.value)}
-                    </p>
-                    <p
-                      className={`text-xs font-medium flex items-center justify-end gap-0.5 ${
-                        asset.change >= 0 ? 'text-green-600' : 'text-rose-500'
-                      }`}
-                    >
-                      {asset.change >= 0 ? (
-                        <TrendingUp className="w-3 h-3" />
-                      ) : (
-                        <TrendingDown className="w-3 h-3" />
-                      )}
-                      {fmtPct(asset.change, {
-                        withSign: true,
-                        decimals: 2,
-                      })}
-                    </p>
-                  </div>
-                </button>
-              ))}
+                );
+              })}
             </div>
           )}
         </div>
@@ -558,7 +597,29 @@ export function InvestmentTab({ data }: { data: PortfolioData }) {
         open={!!activeTicker}
         onOpenChange={(o) => !o && setActiveTicker(null)}
         color={activeTicker ? colorMap[activeTicker] : undefined}
+        onTraded={onAfterTrade}
       />
+
+      {quickTradeHolding && (
+        <TradeDialog
+          open={quickTradeOpen}
+          onOpenChange={(o) => {
+            setQuickTradeOpen(o);
+            if (!o) setQuickTradeHolding(null);
+          }}
+          ticker={quickTradeHolding.ticker}
+          name={quickTradeHolding.name ?? quickTradeHolding.ticker}
+          apiPrice={Number(quickTradeHolding.current_price ?? 0)}
+          assetClass={quickTradeHolding.asset_class ?? undefined}
+          ownedShares={Number(quickTradeHolding.shares ?? 0)}
+          color={colorMap[quickTradeHolding.ticker]}
+          onTraded={async () => {
+            await onAfterTrade?.();
+            setQuickTradeOpen(false);
+            setQuickTradeHolding(null);
+          }}
+        />
+      )}
     </>
   );
 }

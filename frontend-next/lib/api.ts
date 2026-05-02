@@ -13,6 +13,76 @@ export type Holding = {
   avg_cost_basis?: number | null;
   current_price?: number | null;
   current_value?: number | null;
+  is_mutual_fund?: boolean | null;
+  expense_ratio?: number | null;
+  nav_date?: string | null;
+};
+
+export type TradeAction = 'buy' | 'sell';
+
+export type TradeResult = {
+  action: TradeAction;
+  holding: Holding | null;
+  closed?: boolean;
+  shares_traded: number;
+  price: number;
+  total: number;
+};
+
+export type FundHolding = {
+  ticker: string;
+  name: string;
+  weight: number;
+};
+
+export type FundMetadata = {
+  ticker: string;
+  name?: string | null;
+  fund_family?: string | null;
+  category?: string | null;
+  is_mutual_fund?: boolean | null;
+  is_index_fund?: boolean | null;
+  expense_ratio?: number | null;
+  inception_date?: string | null;
+  top_holdings?: FundHolding[] | null;
+  sector_weights?: Record<string, number> | null;
+  ytd_return?: number | null;
+  three_year_return?: number | null;
+  five_year_return?: number | null;
+  source?: 'curated' | 'yfinance' | 'unavailable' | string | null;
+  error?: string | null;
+};
+
+export type FundOverlapPair = {
+  a: string;
+  a_name: string;
+  b: string;
+  b_name: string;
+  overlap: number;
+  a_value: number;
+  b_value: number;
+};
+
+export type FundCostDragItem = {
+  ticker: string;
+  name: string;
+  expense_ratio: number;
+  current_value: number;
+  annual_drag: number;
+};
+
+export type SearchResult = {
+  ticker: string;
+  name: string;
+  current_price?: number | null;
+  previous_close?: number | null;
+  day_change_pct?: number | null;
+  asset_class: string;
+  quote_type?: string | null;
+  is_mutual_fund: boolean;
+  exchange?: string | null;
+  sector?: string | null;
+  currency?: string | null;
 };
 
 export type Goal = {
@@ -198,6 +268,33 @@ export const api = {
   holdings: {
     list: () => get<{ holdings: Holding[] }>('/holdings'),
     syncPrices: () => post<{ status: string }>('/holdings/sync-prices', {}),
+    trade: (body: {
+      ticker: string;
+      action: TradeAction;
+      shares: number;
+      price?: number;
+      name?: string | null;
+      asset_class?: string | null;
+      goal_id?: string | null;
+    }) => post<TradeResult>('/holdings/trade', body),
+  },
+  search: {
+    query: (q: string) =>
+      get<{ results: SearchResult[] }>(`/search?q=${encodeURIComponent(q)}`),
+    quote: (ticker: string) =>
+      get<SearchResult>(`/search/quote/${encodeURIComponent(ticker.toUpperCase())}`),
+  },
+  funds: {
+    metadata: (ticker: string) =>
+      get<FundMetadata>(`/funds/${encodeURIComponent(ticker.toUpperCase())}`),
+    overlap: () =>
+      get<{ pairs: FundOverlapPair[]; fund_count: number }>('/funds/overlap/all'),
+    costDrag: () =>
+      get<{
+        annual_total: number;
+        ten_year_projected: number;
+        items: FundCostDragItem[];
+      }>('/funds/cost-drag/total'),
   },
   alerts: {
     list: () => get<{ alerts: Alert[] }>('/alerts'),

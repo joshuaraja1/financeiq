@@ -3,6 +3,7 @@
 import { TrendingUp, TrendingDown, Minus } from 'lucide-react';
 import type { Holding } from '@/lib/api';
 import { fmtMoney } from '@/lib/format';
+import { TickerLogo } from '@/components/ticker-logo';
 
 interface Props {
   holdings: Holding[];
@@ -52,17 +53,12 @@ export function MarketPulseCard({ holdings, className = '' }: Props) {
           return (
             <div key={h.id} className="flex items-center justify-between">
               <div className="flex items-center gap-2 min-w-0">
-                <div
-                  className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 text-[10px] font-bold ${
-                    isFlat
-                      ? 'bg-gray-100 text-gray-500'
-                      : isUp
-                        ? 'bg-emerald-50 text-emerald-700'
-                        : 'bg-rose-50 text-rose-600'
-                  }`}
-                >
-                  {(h.ticker ?? '?').slice(0, 2)}
-                </div>
+                <TickerLogo
+                  ticker={h.ticker}
+                  size="xs"
+                  rounded="lg"
+                  className="shrink-0"
+                />
                 <div className="min-w-0">
                   <p className="text-xs font-medium text-gray-900 truncate">{h.ticker}</p>
                   <p className="text-[10px] text-gray-400 truncate">{h.name ?? ''}</p>

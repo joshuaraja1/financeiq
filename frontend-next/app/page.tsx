@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   Settings,
@@ -13,10 +13,12 @@ import {
   Activity,
   PiggyBank,
   Loader2,
+  Search,
 } from 'lucide-react';
 import { useAuth } from '@/lib/auth-context';
 import { usePortfolioData } from '@/hooks/use-portfolio-data';
 import { initials } from '@/lib/format';
+import { GlobalSearch } from '@/components/global-search';
 
 import { DashboardTab } from '@/components/tabs/dashboard-tab';
 import { InvestmentTab } from '@/components/tabs/investment-tab';
@@ -47,10 +49,35 @@ export default function PortfolioDashboard() {
   const { session, loading: authLoading, user } = useAuth();
   const data = usePortfolioData();
   const [activeTab, setActiveTab] = useState<TabId>('dashboard');
+  const [searchOpen, setSearchOpen] = useState(false);
+
+  const openSearch = useCallback(() => setSearchOpen(true), []);
 
   useEffect(() => {
     if (!authLoading && !session) router.replace('/login');
   }, [authLoading, session, router]);
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
+        e.preventDefault();
+        openSearch();
+        return;
+      }
+      if (
+        e.key === '/' &&
+        !e.metaKey &&
+        !e.ctrlKey &&
+        document.activeElement?.tagName !== 'INPUT' &&
+        document.activeElement?.tagName !== 'TEXTAREA'
+      ) {
+        e.preventDefault();
+        openSearch();
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [openSearch]);
 
   useNavigateListener((tab: AppNavTab) => {
     setActiveTab(tab as TabId);
@@ -129,9 +156,21 @@ export default function PortfolioDashboard() {
           </div>
         </header>
 
+        <GlobalSearch
+          open={searchOpen}
+          onOpenChange={setSearchOpen}
+          holdings={data.holdings}
+          onTraded={() => void data.refresh()}
+        />
+
         <main className="px-6 lg:px-10 py-8 space-y-8">
           {activeTab === 'dashboard' && <DashboardTab data={data} />}
-          {activeTab === 'investment' && <InvestmentTab data={data} />}
+          {activeTab === 'investment' && (
+            <InvestmentTab
+              data={data}
+              onAfterTrade={() => void data.refresh()}
+            />
+          )}
           {activeTab === 'rebalance' && <RebalanceTab data={data} />}
           {activeTab === 'activity' && <ActivityTab data={data} />}
           {activeTab === 'goals' && <GoalsTab data={data} />}
