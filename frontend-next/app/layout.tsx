@@ -3,6 +3,7 @@ import './globals.css';
 import { AuthProvider } from '@/lib/auth-context';
 import { ChartModeProvider } from '@/lib/chart-mode';
 import { LivePricesProvider } from '@/lib/live-prices';
+import { ThemeProvider } from '@/components/theme-provider';
 import { Toaster } from 'sonner';
 
 export const metadata: Metadata = {
@@ -32,13 +33,15 @@ export default function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="en" className="bg-white">
-      <body className="font-sans antialiased bg-white text-gray-900">
-        <ChartModeProvider>
-          <LivePricesProvider>
-            <AuthProvider>{children}</AuthProvider>
-          </LivePricesProvider>
-        </ChartModeProvider>
+    <html lang="en" suppressHydrationWarning>
+      <body className="font-sans antialiased bg-background text-foreground min-h-screen">
+        <ThemeProvider attribute="class" defaultTheme="light" enableSystem>
+          <ChartModeProvider>
+            <LivePricesProvider>
+              <AuthProvider>{children}</AuthProvider>
+            </LivePricesProvider>
+          </ChartModeProvider>
+        </ThemeProvider>
         <Toaster richColors position="top-right" />
       </body>
     </html>

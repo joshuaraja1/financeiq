@@ -53,6 +53,8 @@ interface Props {
   /** "live" for stocks/ETFs (intraday ticking), "daily-nav" for mutual
    *  funds (90-day NAV history, no ticking, day-resolution x-axis). */
   mode?: MarketChartMode;
+  /** When true, live mode stops advancing bars (chart stays frozen). */
+  paused?: boolean;
   /** Optional fund category to tune NAV walk volatility. Only used in
    *  'daily-nav' mode. */
   fundCategory?: string | null;
@@ -84,6 +86,7 @@ export function MarketChart({
   mode = 'live',
   fundCategory,
   onTick,
+  paused = false,
 }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const onTickRef = useRef<typeof onTick>(undefined);
@@ -293,29 +296,32 @@ export function MarketChart({
     });
     ro.observe(container);
 
-    const interval = setInterval(() => {
-      const next = generateNextCandle(lastCandle, vol, barSec);
-      if (effectiveKind === 'candlestick') {
-        (series as ISeriesApi<'Candlestick'>).update({
-          time: next.time as UTCTimestamp,
-          open: next.open,
-          high: next.high,
-          low: next.low,
-          close: next.close,
-        });
-      } else {
-        (series as ISeriesApi<'Line'>).update({
-          time: next.time as UTCTimestamp,
-          value: next.close,
-        });
-      }
-      lastCandle = next;
-      setLivePrice(ticker, next.close);
-      onTickRef.current?.(next.close);
-    }, intervalMs);
+    let interval: ReturnType<typeof setInterval> | undefined;
+    if (!paused) {
+      interval = setInterval(() => {
+        const next = generateNextCandle(lastCandle, vol, barSec);
+        if (effectiveKind === 'candlestick') {
+          (series as ISeriesApi<'Candlestick'>).update({
+            time: next.time as UTCTimestamp,
+            open: next.open,
+            high: next.high,
+            low: next.low,
+            close: next.close,
+          });
+        } else {
+          (series as ISeriesApi<'Line'>).update({
+            time: next.time as UTCTimestamp,
+            value: next.close,
+          });
+        }
+        lastCandle = next;
+        setLivePrice(ticker, next.close);
+        onTickRef.current?.(next.close);
+      }, intervalMs);
+    }
 
     return () => {
-      clearInterval(interval);
+      if (interval) clearInterval(interval);
       ro.disconnect();
       chart.remove();
     };
@@ -333,6 +339,7 @@ export function MarketChart({
     effectiveKind,
     mode,
     fundCategory,
+    paused,
   ]);
 
   return (
