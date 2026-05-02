@@ -329,7 +329,7 @@ export function InvestmentTab({ data }: { data: PortfolioData }) {
         {/* Total Profits radial */}
         <div className="bg-white border border-gray-100 rounded-2xl p-6 shadow-sm">
           <div className="flex items-center justify-between mb-6 relative">
-            <h2 className="text-lg font-semibold">Total Profits</h2>
+            <h2 className="text-lg font-semibold">Realized Profit</h2>
             <button
               onClick={() => setProfitPeriodOpen((o) => !o)}
               className="flex items-center gap-1 bg-gray-50 hover:bg-gray-100 px-3 py-1.5 rounded-full text-sm text-gray-600 transition"

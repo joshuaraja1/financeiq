@@ -7,6 +7,10 @@ const nextConfig = {
   },
   images: {
     unoptimized: true,
+    remotePatterns: [
+      { protocol: 'https', hostname: 'img.logo.dev' },
+      { protocol: 'https', hostname: 'static.cdnlogo.com' },
+    ],
   },
   async rewrites() {
     return [
