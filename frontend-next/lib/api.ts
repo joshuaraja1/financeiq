@@ -113,6 +113,13 @@ export type CalibrationStats = {
   accuracy_pct: number | null;
 };
 
+export type UserProfile = {
+  id?: string;
+  full_name?: string | null;
+  risk_tolerance?: 'conservative' | 'moderate' | 'aggressive' | null;
+  risk_capacity?: 'low' | 'medium' | 'high' | null;
+};
+
 async function authHeaders(): Promise<Record<string, string>> {
   try {
     const {
@@ -169,6 +176,11 @@ async function fetchDelete<T>(path: string): Promise<T> {
 }
 
 export const api = {
+  user: {
+    profile: () => get<UserProfile>('/user/profile'),
+    updateProfile: (body: Partial<UserProfile>) =>
+      put<UserProfile>('/user/profile', body),
+  },
   portfolio: {
     summary: () => get<PortfolioSummary>('/portfolio/summary'),
     history: () =>
@@ -180,6 +192,8 @@ export const api = {
   },
   goals: {
     list: () => get<{ goals: Goal[] }>('/goals'),
+    update: (id: string, body: Record<string, unknown>) =>
+      put<Goal>(`/goals/${id}`, body),
   },
   holdings: {
     list: () => get<{ holdings: Holding[] }>('/holdings'),

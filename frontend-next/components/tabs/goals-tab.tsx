@@ -5,6 +5,7 @@ import type { PortfolioData } from '@/hooks/use-portfolio-data';
 import type { Goal } from '@/lib/api';
 import { fmtMoney, fmtPct, assetColor, assetLabel } from '@/lib/format';
 import { EmptyState } from '@/components/data-state';
+import { RebalancingSettingsPanel } from '@/components/rebalancing-settings-panel';
 
 const GOAL_ICON: Record<string, React.ComponentType<{ className?: string }>> = {
   retirement: PiggyBank,
@@ -86,7 +87,7 @@ function AllocationStrip({ allocation }: { allocation: Record<string, number> })
 }
 
 export function GoalsTab({ data }: { data: PortfolioData }) {
-  const { goals, summary } = data;
+  const { goals, summary, refresh } = data;
 
   const totalSavings = goals.reduce(
     (acc, g) => acc + Number(g.current_amount ?? 0),
@@ -196,6 +197,9 @@ export function GoalsTab({ data }: { data: PortfolioData }) {
                 {goal.target_allocation && (
                   <AllocationStrip allocation={goal.target_allocation} />
                 )}
+                <div className="mt-4 pt-4 border-t border-gray-100">
+                  <RebalancingSettingsPanel goal={goal} onSaved={refresh} />
+                </div>
               </div>
             );
           })}
