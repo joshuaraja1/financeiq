@@ -897,12 +897,13 @@ function TopMovers({
               onClick={() => onSelect(stock.ticker)}
               className="flex items-center gap-3 shrink-0 hover:scale-[1.03] transition-transform cursor-pointer"
             >
-              <div
-                className="w-10 h-10 rounded-full flex items-center justify-center text-white font-bold text-sm"
-                style={{ backgroundColor: stock.color }}
-              >
-                {stock.ticker[0]}
-              </div>
+              <TickerLogo
+                ticker={stock.ticker}
+                color={stock.color}
+                size="md"
+                rounded="full"
+                className="shrink-0"
+              />
               <div className="text-left">
                 <p className="font-semibold text-sm">{stock.ticker}</p>
                 <div className="flex items-center gap-2">
