@@ -26,7 +26,7 @@ function fv(pv: number, rate: number, years: number, pmt = 0): number {
 }
 
 export function FutureValueCalculator({ currentValue, monthlyContribution = 0 }: Props) {
-  const [selectedRate, setSelectedRate] = useState(0.07);
+  const [selectedRate, setSelectedRate] = useState(0.06);
   const [monthly, setMonthly] = useState(monthlyContribution);
 
   const projections = useMemo(

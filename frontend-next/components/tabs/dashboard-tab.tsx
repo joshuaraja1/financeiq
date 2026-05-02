@@ -23,6 +23,7 @@ import { PortfolioValueChart } from '@/components/portfolio-value-chart';
 import { AccountFeesCard } from '@/components/dashboard/account-fees-card';
 import { FutureValueCalculator } from '@/components/dashboard/future-value-calculator';
 import { toast } from 'sonner';
+import { emitNavigate } from '@/lib/app-bridge';
 
 function greeting() {
   const h = new Date().getHours();
@@ -149,7 +150,29 @@ export function DashboardTab({ data }: { data: PortfolioData }) {
         </div>
       </div>
 
-      {/* Stats */}
+      {/* Sync hint */}
+      {!pricesSynced && holdings.length > 0 && (
+        <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 flex items-start gap-3">
+          <AlertTriangle className="w-5 h-5 text-amber-600 mt-0.5 shrink-0" />
+          <div className="text-sm text-amber-900">
+            <p className="font-semibold">Prices not synced yet</p>
+            <p className="text-amber-800/80 mt-0.5">
+              Click <span className="font-semibold">Sync prices</span> above to pull live
+              prices from Yahoo Finance. Until then, holdings show $0.
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* Account fees + market summary (matches classic dashboard layout) */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <AccountFeesCard accessToken={session?.access_token ?? null} />
+        <MarketPulseCard holdings={holdings} title="Market summary" />
+      </div>
+
+      <FutureValueCalculator currentValue={totalValue} />
+
+      {/* Key stats — below projection so the fold matches the reference UI */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="bg-gradient-to-br from-indigo-500 to-purple-600 rounded-2xl p-5 text-white shadow-lg shadow-indigo-500/20">
           <p className="text-sm opacity-80">Total Portfolio Value</p>
@@ -175,13 +198,13 @@ export function DashboardTab({ data }: { data: PortfolioData }) {
           </div>
         </div>
 
-        <div className="bg-white border border-gray-100 rounded-2xl p-5 shadow-sm">
+        <div className="bg-white border border-gray-100 rounded-2xl p-5 shadow-sm dark:bg-card dark:border-border">
           <p className="text-sm text-gray-500">Available Cash</p>
           <p className="text-2xl font-bold mt-1 tabular-nums">{fmtMoney(cash)}</p>
           <p className="text-xs text-gray-400 mt-2">From your cash holdings</p>
         </div>
 
-        <div className="bg-white border border-gray-100 rounded-2xl p-5 shadow-sm">
+        <div className="bg-white border border-gray-100 rounded-2xl p-5 shadow-sm dark:bg-card dark:border-border">
           <p className="text-sm text-gray-500">Unrealized Gain / Loss</p>
           <p
             className={`text-2xl font-bold mt-1 tabular-nums ${
@@ -194,7 +217,7 @@ export function DashboardTab({ data }: { data: PortfolioData }) {
           <p className="text-xs text-gray-400 mt-2">vs. cost basis</p>
         </div>
 
-        <div className="bg-white border border-gray-100 rounded-2xl p-5 shadow-sm">
+        <div className="bg-white border border-gray-100 rounded-2xl p-5 shadow-sm dark:bg-card dark:border-border">
           <p className="text-sm text-gray-500">Sharpe Ratio</p>
           <p className="text-2xl font-bold mt-1 tabular-nums">
             {summary?.sharpe_ratio?.toFixed(2) ?? '—'}
@@ -203,38 +226,6 @@ export function DashboardTab({ data }: { data: PortfolioData }) {
             Expected return per unit of risk
           </p>
         </div>
-      </div>
-
-      {/* Sync hint */}
-      {!pricesSynced && holdings.length > 0 && (
-        <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 flex items-start gap-3">
-          <AlertTriangle className="w-5 h-5 text-amber-600 mt-0.5 shrink-0" />
-          <div className="text-sm text-amber-900">
-            <p className="font-semibold">Prices not synced yet</p>
-            <p className="text-amber-800/80 mt-0.5">
-              Click <span className="font-semibold">Sync prices</span> above to pull live
-              prices from Yahoo Finance. Until then, holdings show $0.
-            </p>
-          </div>
-        </div>
-      )}
-
-      {/* Portfolio chart, fees, future value */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        <div className="lg:col-span-7 space-y-4">
-          <PortfolioValueChart
-            history={history}
-            summary={summary}
-            holdings={holdings}
-            defaultPeriod="1Y"
-            compact
-            enableBenchmarks
-            accessToken={session?.access_token ?? null}
-          />
-          <AccountFeesCard accessToken={session?.access_token ?? null} />
-          <FutureValueCalculator currentValue={totalValue} />
-        </div>
-        <MarketPulseCard holdings={holdings} className="lg:col-span-5" />
       </div>
 
       {/* Recent activity (alerts + recommendations) */}
@@ -356,11 +347,19 @@ export function DashboardTab({ data }: { data: PortfolioData }) {
               <Bell className="w-6 h-6 mx-auto mb-2 text-amber-600" />
               <span className="text-sm font-medium">Pull news</span>
             </button>
-            <button className="p-4 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors text-center">
+            <button
+              type="button"
+              onClick={() => emitNavigate('goals')}
+              className="p-4 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors text-center dark:bg-muted/50"
+            >
               <PiggyBank className="w-6 h-6 mx-auto mb-2 text-green-600" />
               <span className="text-sm font-medium">Goals</span>
             </button>
-            <button className="p-4 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors text-center">
+            <button
+              type="button"
+              onClick={() => emitNavigate('ai')}
+              className="p-4 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors text-center dark:bg-muted/50"
+            >
               <Sparkles className="w-6 h-6 mx-auto mb-2 text-purple-600" />
               <span className="text-sm font-medium">Ask AI</span>
             </button>
@@ -391,6 +390,16 @@ export function DashboardTab({ data }: { data: PortfolioData }) {
           </div>
         </div>
       </div>
+
+      <PortfolioValueChart
+        history={history}
+        summary={summary}
+        holdings={holdings}
+        defaultPeriod="1Y"
+        compact
+        enableBenchmarks
+        accessToken={session?.access_token ?? null}
+      />
     </>
   );
 }

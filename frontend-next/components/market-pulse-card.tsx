@@ -8,9 +8,15 @@ import { TickerLogo } from '@/components/ticker-logo';
 interface Props {
   holdings: Holding[];
   className?: string;
+  /** Defaults to "Market pulse"; use "Market summary" on the dashboard. */
+  title?: string;
 }
 
-export function MarketPulseCard({ holdings, className = '' }: Props) {
+export function MarketPulseCard({
+  holdings,
+  className = '',
+  title = 'Market pulse',
+}: Props) {
   const sorted = [...holdings]
     .filter((h) => h.asset_class !== 'cash' && Number(h.current_value ?? 0) > 0)
     .sort((a, b) => Number(b.current_value ?? 0) - Number(a.current_value ?? 0))
@@ -39,7 +45,7 @@ export function MarketPulseCard({ holdings, className = '' }: Props) {
 
   return (
     <div className={`bg-white border border-gray-100 rounded-2xl p-5 shadow-sm ${className}`}>
-      <p className="text-sm font-semibold text-gray-700 mb-4">Market pulse</p>
+      <p className="text-sm font-semibold text-gray-700 mb-4">{title}</p>
 
       <div className="space-y-2.5">
         {sorted.map((h) => {
