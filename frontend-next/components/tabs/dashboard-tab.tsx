@@ -18,6 +18,10 @@ import type { PortfolioData } from '@/hooks/use-portfolio-data';
 import { useAuth } from '@/lib/auth-context';
 import { fmtMoney, fmtPct, relativeTime } from '@/lib/format';
 import { EmptyState } from '@/components/data-state';
+import { MarketPulseCard } from '@/components/market-pulse-card';
+import { PortfolioValueChart } from '@/components/portfolio-value-chart';
+import { AccountFeesCard } from '@/components/dashboard/account-fees-card';
+import { FutureValueCalculator } from '@/components/dashboard/future-value-calculator';
 import { toast } from 'sonner';
 
 function greeting() {
@@ -35,7 +39,7 @@ function urgencyClass(u?: string | null) {
 }
 
 export function DashboardTab({ data }: { data: PortfolioData }) {
-  const { user } = useAuth();
+  const { user, session } = useAuth();
   const {
     summary,
     history,
@@ -214,6 +218,24 @@ export function DashboardTab({ data }: { data: PortfolioData }) {
           </div>
         </div>
       )}
+
+      {/* Portfolio chart, fees, future value */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        <div className="lg:col-span-7 space-y-4">
+          <PortfolioValueChart
+            history={history}
+            summary={summary}
+            holdings={holdings}
+            defaultPeriod="1Y"
+            compact
+            enableBenchmarks
+            accessToken={session?.access_token ?? null}
+          />
+          <AccountFeesCard accessToken={session?.access_token ?? null} />
+          <FutureValueCalculator currentValue={totalValue} />
+        </div>
+        <MarketPulseCard holdings={holdings} className="lg:col-span-5" />
+      </div>
 
       {/* Recent activity (alerts + recommendations) */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

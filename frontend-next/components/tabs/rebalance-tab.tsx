@@ -14,6 +14,7 @@ import type { PortfolioData } from '@/hooks/use-portfolio-data';
 import type { Recommendation } from '@/lib/api';
 import { fmtMoney, fmtPct, assetColor, assetLabel } from '@/lib/format';
 import { EmptyState } from '@/components/data-state';
+import { WhatIfScenariosPanel } from '@/components/what-if-scenarios-panel';
 import { api } from '@/lib/api';
 import { toast } from 'sonner';
 
@@ -357,7 +358,9 @@ export function RebalanceTab({ data }: { data: PortfolioData }) {
         </div>
       </div>
 
-      <div>
+      <WhatIfScenariosPanel goals={data.goals} holdings={data.holdings} refresh={refresh} />
+
+      <div id="open-recommendations">
         <h2 className="font-semibold text-lg mb-3">
           Open recommendations ({recommendations.length})
         </h2>
