@@ -25,6 +25,11 @@ import { ActivityTab } from '@/components/tabs/activity-tab';
 import { GoalsTab } from '@/components/tabs/goals-tab';
 import { AITab } from '@/components/ai-tab/ai-tab';
 import { ProfileMenu } from '@/components/profile-menu';
+import {
+  useNavigateListener,
+  useRefreshListener,
+  type AppNavTab,
+} from '@/lib/app-bridge';
 
 const tabs = [
   { id: 'dashboard', label: 'Dashboard', icon: BarChart3 },
@@ -46,6 +51,13 @@ export default function PortfolioDashboard() {
   useEffect(() => {
     if (!authLoading && !session) router.replace('/login');
   }, [authLoading, session, router]);
+
+  useNavigateListener((tab: AppNavTab) => {
+    setActiveTab(tab as TabId);
+  });
+  useRefreshListener(() => {
+    void data.refresh();
+  });
 
   if (authLoading || (!session && typeof window !== 'undefined')) {
     return (
