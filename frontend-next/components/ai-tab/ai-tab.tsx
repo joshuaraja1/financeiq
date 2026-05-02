@@ -53,6 +53,18 @@ import { useAuth } from '@/lib/auth-context';
 import type { PortfolioData } from '@/hooks/use-portfolio-data';
 import { fmtMoney, fmtPct, initials } from '@/lib/format';
 import { toast } from 'sonner';
+import {
+  VoiceComposerButton,
+  VoiceComposerProvider,
+  VoiceErrorBanner,
+  VoiceLiveStrip,
+} from '@/components/voice-composer-button';
+import {
+  emitNavigate,
+  emitOpenSettings,
+  emitRefresh,
+  type AppNavTab,
+} from '@/lib/app-bridge';
 
 // ---------- TIME MACHINE ----------
 
@@ -652,6 +664,75 @@ export function AITab({ data }: { data: PortfolioData }) {
 
   const userInitials = initials(user?.email);
 
+  const handleVoiceAction = useCallback(
+    (tool: string, result: unknown) => {
+      const r = (result ?? {}) as {
+        status?: string;
+        tab?: string;
+        theme?: string;
+        ticker?: string;
+        goal_name?: string;
+      };
+
+      if (tool === 'navigate_ui' && r.tab) {
+        emitNavigate(r.tab as AppNavTab);
+        toast.message(`Showing the ${r.tab} tab`);
+        return;
+      }
+      if (tool === 'open_settings') {
+        emitOpenSettings();
+        toast.message('Opening settings');
+        return;
+      }
+      if (tool === 'set_theme' && r.theme) {
+        toast.message('Use Profile → Profile & settings to change appearance.');
+        return;
+      }
+
+      emitRefresh();
+      void data.refresh();
+
+      switch (tool) {
+        case 'rebalance_portfolio':
+          toast.success('Voice agent rebalanced your portfolio.');
+          break;
+        case 'buy_holding':
+          toast.success(
+            r.ticker ? `Bought ${r.ticker} via voice.` : 'Trade recorded by voice.',
+          );
+          break;
+        case 'sell_holding':
+        case 'delete_holding':
+          toast.success(
+            r.ticker
+              ? `${tool === 'delete_holding' ? 'Closed' : 'Sold'} ${r.ticker} via voice.`
+              : 'Position updated by voice.',
+          );
+          break;
+        case 'contribute_to_goal':
+          toast.success('Contribution recorded by voice.');
+          break;
+        case 'create_goal':
+          toast.success('New goal added by voice.');
+          break;
+        case 'delete_goal':
+          toast.success(
+            r.goal_name ? `Deleted goal "${r.goal_name}".` : 'Goal deleted by voice.',
+          );
+          break;
+        case 'sync_prices':
+          toast.success('Prices synced by voice.');
+          break;
+        case 'refresh_news':
+          toast.success('News refreshed by voice.');
+          break;
+        default:
+          break;
+      }
+    },
+    [data],
+  );
+
   // Bucket conversations into Today / Yesterday / Last 7 days / Earlier.
   const groupedConversations = useMemo(() => {
     const today: Conversation[] = [];
@@ -778,6 +859,7 @@ export function AITab({ data }: { data: PortfolioData }) {
   ];
 
   return (
+    <VoiceComposerProvider onAction={handleVoiceAction}>
     <div className="flex gap-6 h-[calc(100vh-180px)] min-h-[600px]">
       {/* Sidebar */}
       <div className="hidden md:flex w-[280px] bg-gray-50 rounded-2xl p-4 flex-col">
@@ -1066,6 +1148,8 @@ export function AITab({ data }: { data: PortfolioData }) {
 
         {/* Input */}
         <div className="sticky bottom-0 bg-white pt-4 border-t border-gray-100">
+          <VoiceErrorBanner />
+          <VoiceLiveStrip className="mb-2" />
           <div className="bg-gray-50 rounded-2xl p-3 flex items-center gap-2">
             <button
               onClick={startNewChat}
@@ -1074,6 +1158,7 @@ export function AITab({ data }: { data: PortfolioData }) {
             >
               <Plus className="w-4 h-4 text-gray-500" />
             </button>
+            <VoiceComposerButton disabled={busy} />
             <input 
               type="text"
               value={input}
@@ -1123,7 +1208,8 @@ export function AITab({ data }: { data: PortfolioData }) {
         initialKey={timeMachineKey}
       />
       <TranslateDialog open={translateOpen} onOpenChange={setTranslateOpen} />
-              </div>
+    </div>
+    </VoiceComposerProvider>
   );
 }
 

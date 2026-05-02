@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/auth-context';
+import { useOpenSettingsListener } from '@/lib/app-bridge';
 import { LogOut, Settings } from 'lucide-react';
 import { ProfileSettingsModal } from '@/components/profile-settings-modal';
 
@@ -18,6 +19,8 @@ export function ProfileMenu({
   const [open, setOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
+
+  useOpenSettingsListener(() => setProfileOpen(true));
 
   useEffect(() => {
     const handle = (e: MouseEvent) => {
