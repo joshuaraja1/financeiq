@@ -19,6 +19,7 @@ import { useAuth } from '@/lib/auth-context';
 import { usePortfolioData } from '@/hooks/use-portfolio-data';
 import { initials } from '@/lib/format';
 import { GlobalSearch } from '@/components/global-search';
+import { ThemeToggle } from '@/components/theme-toggle';
 
 import { DashboardTab } from '@/components/tabs/dashboard-tab';
 import { InvestmentTab } from '@/components/tabs/investment-tab';
@@ -88,8 +89,8 @@ export default function PortfolioDashboard() {
 
   if (authLoading || (!session && typeof window !== 'undefined')) {
     return (
-      <div className="min-h-screen bg-white flex items-center justify-center">
-        <Loader2 className="w-6 h-6 text-gray-400 animate-spin" />
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <Loader2 className="w-6 h-6 text-muted-foreground animate-spin" />
       </div>
     );
   }
@@ -101,10 +102,10 @@ export default function PortfolioDashboard() {
   );
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-background">
       <div className="max-w-[1400px] mx-auto">
         {/* Top Navigation */}
-        <header className="flex items-center justify-between px-6 lg:px-10 py-4 border-b border-gray-100 sticky top-0 bg-white/85 backdrop-blur-md z-30">
+        <header className="flex items-center justify-between px-6 lg:px-10 py-4 border-b border-border sticky top-0 bg-background/85 backdrop-blur-md z-30">
           <div className="flex items-center gap-2">
             <div className="w-8 h-8 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-lg flex items-center justify-center shadow-md shadow-indigo-500/30">
               <span className="text-white font-bold text-sm">F</span>
@@ -112,7 +113,7 @@ export default function PortfolioDashboard() {
             <span className="font-bold text-lg">FinanceIQ</span>
           </div>
 
-          <nav className="flex items-center bg-gray-100 rounded-full p-1">
+          <nav className="flex items-center bg-muted rounded-full p-1">
             {tabs.map((tab) => (
               <button
                 key={tab.id}
@@ -128,29 +129,42 @@ export default function PortfolioDashboard() {
             ))}
           </nav>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 sm:gap-3">
+            <button
+              type="button"
+              onClick={() => setSearchOpen(true)}
+              title="Search tickers (⌘K)"
+              className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium bg-muted hover:bg-muted/80 text-muted-foreground border border-border"
+            >
+              <Search className="w-3.5 h-3.5" />
+              <span>Search</span>
+              <kbd className="hidden md:inline text-[10px] text-muted-foreground font-sans">
+                ⌘K
+              </kbd>
+            </button>
             <button
               onClick={() => void data.syncPrices()}
               title="Pull live prices from Yahoo Finance"
-              className="hidden sm:flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-medium bg-gray-50 hover:bg-gray-100 text-gray-700"
+              className="hidden sm:flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-medium bg-muted hover:bg-muted/80 text-foreground"
             >
               Sync prices
             </button>
             <button
               onClick={() => setActiveTab('activity')}
-              className="p-2 hover:bg-gray-100 rounded-full transition-colors relative"
+              className="p-2 hover:bg-muted rounded-full transition-colors relative"
               aria-label="Notifications"
             >
-              <Bell className="w-5 h-5 text-gray-600" />
+              <Bell className="w-5 h-5 text-muted-foreground" />
               {unreadAlerts > 0 && (
                 <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full" />
               )}
             </button>
+            <ThemeToggle />
             <button
-              className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+              className="p-2 hover:bg-muted rounded-full transition-colors"
               aria-label="Settings"
             >
-              <Settings className="w-5 h-5 text-gray-600" />
+              <Settings className="w-5 h-5 text-muted-foreground" />
             </button>
             <ProfileMenu initials={userInitials} email={user?.email ?? ''} />
           </div>

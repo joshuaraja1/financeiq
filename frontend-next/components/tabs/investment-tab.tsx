@@ -32,6 +32,9 @@ import { CardSpinner, EmptyState } from '@/components/data-state';
 import { StockDetailDialog } from '@/components/stock-detail-dialog';
 import { TradeDialog } from '@/components/trade-dialog';
 import { TickerLogo } from '@/components/ticker-logo';
+import { LiveMarketSection } from '@/components/live-market-section';
+import { FundOverlapSection } from '@/components/fund-overlap-section';
+import { isMutualFund } from '@/lib/funds';
 
 type Period = '1M' | '3M' | '6M' | 'YTD' | '1Y' | 'ALL';
 type ProfitPeriod = '1M' | '3M' | '6M' | 'YTD' | '1Y' | 'ALL';
@@ -240,6 +243,15 @@ export function InvestmentTab({
     <>
       <TopMovers movers={topMovers} onSelect={setActiveTicker} />
 
+      <LiveMarketSection
+        holdings={holdings}
+        colorMap={colorMap}
+        onQuickTrade={(h) => {
+          setQuickTradeHolding(h);
+          setQuickTradeOpen(true);
+        }}
+      />
+
       {/* Hero Row */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Portfolio value chart */}
@@ -342,7 +354,7 @@ export function InvestmentTab({
         {/* Total Profits radial */}
         <div className="bg-white border border-gray-100 rounded-2xl p-6 shadow-sm">
           <div className="flex items-center justify-between mb-6 relative">
-            <h2 className="text-lg font-semibold">Realized Profit</h2>
+            <h2 className="text-lg font-semibold">Total Profits</h2>
             <button
               onClick={() => setProfitPeriodOpen((o) => !o)}
               className="flex items-center gap-1 bg-gray-50 hover:bg-gray-100 px-3 py-1.5 rounded-full text-sm text-gray-600 transition"
@@ -496,8 +508,13 @@ export function InvestmentTab({
                           className="shrink-0"
                         />
                         <div className="min-w-0">
-                          <p className="font-semibold text-sm truncate">
+                          <p className="font-semibold text-sm truncate flex items-center gap-1.5">
                             {asset.ticker}
+                            {rowHolding && isMutualFund(rowHolding) && (
+                              <span className="text-[9px] px-1 py-px rounded bg-indigo-50 text-indigo-700 border border-indigo-100 font-semibold tracking-wider shrink-0">
+                                MF
+                              </span>
+                            )}
                           </p>
                           <p className="text-xs text-gray-500 truncate">
                             {asset.name} · {asset.percentage.toFixed(1)}%
