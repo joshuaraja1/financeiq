@@ -1,14 +1,6 @@
 'use client';
 
-import { useMemo } from 'react';
-import {
-  AreaChart,
-  Area,
-  XAxis,
-  YAxis,
-  ResponsiveContainer,
-  Tooltip,
-} from 'recharts';
+import { useMemo, useState } from 'react';
 import { TrendingDown, TrendingUp } from 'lucide-react';
 import {
   Dialog,
@@ -16,6 +8,9 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import { MarketChart } from '@/components/market-chart';
+import { TradeDialog } from '@/components/trade-dialog';
+import { TickerLogo } from '@/components/ticker-logo';
 import type { Holding, PortfolioSnapshot } from '@/lib/api';
 import {
   fmtMoney,
@@ -24,6 +19,7 @@ import {
   assetColor,
   tickerColor,
 } from '@/lib/format';
+import { isMutualFund } from '@/lib/funds';
 
 type Props = {
   holding: Holding | null;
@@ -33,6 +29,8 @@ type Props = {
   onOpenChange: (open: boolean) => void;
   /** Optional override so the modal matches the color used in the dashboard. */
   color?: string;
+  /** Refresh portfolio after a successful trade. */
+  onTraded?: () => void | Promise<void>;
 };
 
 /** Reconstruct a synthetic price history for the holding by allocating the
@@ -69,7 +67,10 @@ export function StockDetailDialog({
   open,
   onOpenChange,
   color: colorOverride,
+  onTraded,
 }: Props) {
+  const [tradeOpen, setTradeOpen] = useState(false);
+
   const data = useMemo(
     () => (holding ? buildSeries(holding, totalPortfolioValue, history) : []),
     [holding, totalPortfolioValue, history],
@@ -85,187 +86,171 @@ export function StockDetailDialog({
   const ticker = holding.ticker;
   const color = colorOverride ?? tickerColor(ticker);
   const aClass = holding.asset_class ?? 'other';
+  const basePx = Math.max(Number(holding.current_price ?? 0), 0.01);
+  const fundLike =
+    !!holding.is_mutual_fund || isMutualFund(ticker) || aClass === 'cash';
 
   // Period change derived from the synthetic series endpoints
   const periodChange =
-    data.length >= 2
-      ? data[data.length - 1].value - data[0].value
-      : 0;
+    data.length >= 2 ? data[data.length - 1].value - data[0].value : 0;
   const periodPct =
     data.length >= 2 && data[0].value
       ? (periodChange / data[0].value) * 100
       : 0;
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl">
-        <DialogHeader>
-          <div className="flex items-center gap-3">
-            <div
-              className="w-12 h-12 rounded-xl flex items-center justify-center text-white font-bold"
-              style={{ backgroundColor: color }}
-            >
-              {ticker[0]}
-            </div>
-            <div className="min-w-0">
-              <DialogTitle className="text-xl">{ticker}</DialogTitle>
-              <p className="text-sm text-gray-500 truncate">
-                {holding.name ?? ticker} ·{' '}
-                <span
-                  className="font-medium"
-                  style={{ color: assetColor(aClass) }}
-                >
-                  {assetLabel(aClass)}
-                </span>
-              </p>
-            </div>
-          </div>
-        </DialogHeader>
-
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-4">
-          <div className="bg-gray-50 rounded-xl p-3">
-            <p className="text-[11px] text-gray-500">Price</p>
-            <p className="text-base font-semibold tabular-nums mt-0.5">
-              {fmtMoney(holding.current_price ?? 0)}
-            </p>
-          </div>
-          <div className="bg-gray-50 rounded-xl p-3">
-            <p className="text-[11px] text-gray-500">Shares</p>
-            <p className="text-base font-semibold tabular-nums mt-0.5">
-              {Number(holding.shares ?? 0).toLocaleString('en-US', {
-                maximumFractionDigits: 4,
-              })}
-            </p>
-          </div>
-          <div className="bg-gray-50 rounded-xl p-3">
-            <p className="text-[11px] text-gray-500">Market value</p>
-            <p className="text-base font-semibold tabular-nums mt-0.5">
-              {fmtMoney(cv)}
-            </p>
-          </div>
-          <div className="bg-gray-50 rounded-xl p-3">
-            <p className="text-[11px] text-gray-500">% of portfolio</p>
-            <p className="text-base font-semibold tabular-nums mt-0.5">
-              {weight.toFixed(1)}%
-            </p>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-2 gap-3 mt-3">
-          <div
-            className={`rounded-xl p-4 ${
-              gain >= 0
-                ? 'bg-emerald-50 border border-emerald-100'
-                : 'bg-rose-50 border border-rose-100'
-            }`}
-          >
-            <p className="text-[11px] uppercase tracking-wide text-gray-600">
-              Unrealized Gain / Loss
-            </p>
-            <div
-              className={`flex items-center gap-2 mt-0.5 ${gain >= 0 ? 'text-emerald-700' : 'text-rose-700'}`}
-            >
-              {gain >= 0 ? (
-                <TrendingUp className="w-4 h-4" />
-              ) : (
-                <TrendingDown className="w-4 h-4" />
-              )}
-              <p className="text-lg font-bold tabular-nums">
-                {gain >= 0 ? '+' : '−'}
-                {fmtMoney(Math.abs(gain))}
-              </p>
-              <span className="text-sm tabular-nums opacity-80">
-                ({fmtPct(gainPct, { withSign: true, decimals: 2 })})
-              </span>
-            </div>
-            <p className="text-[11px] text-gray-500 mt-1">
-              Cost basis {fmtMoney(cost)} ·{' '}
-              {fmtMoney(holding.avg_cost_basis ?? 0)} per share
-            </p>
-          </div>
-
-          <div className="rounded-xl p-4 bg-gray-50 border border-gray-100">
-            <p className="text-[11px] uppercase tracking-wide text-gray-600">
-              Period change
-            </p>
-            <div
-              className={`flex items-center gap-2 mt-0.5 ${periodChange >= 0 ? 'text-emerald-700' : 'text-rose-700'}`}
-            >
-              {periodChange >= 0 ? (
-                <TrendingUp className="w-4 h-4" />
-              ) : (
-                <TrendingDown className="w-4 h-4" />
-              )}
-              <p className="text-lg font-bold tabular-nums">
-                {periodChange >= 0 ? '+' : '−'}
-                {fmtMoney(Math.abs(periodChange))}
-              </p>
-              <span className="text-sm tabular-nums opacity-80">
-                ({fmtPct(periodPct, { withSign: true, decimals: 2 })})
-              </span>
-            </div>
-            <p className="text-[11px] text-gray-500 mt-1">
-              Estimated from your portfolio history (last{' '}
-              {Math.max(data.length, 1)} days)
-            </p>
-          </div>
-        </div>
-
-        <div className="h-48 mt-4">
-          {data.length >= 2 ? (
-            <ResponsiveContainer width="100%" height="100%">
-              <AreaChart
-                data={data}
-                margin={{ top: 5, right: 0, left: 0, bottom: 0 }}
+    <>
+      <Dialog open={open} onOpenChange={onOpenChange}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <div className="flex items-start justify-between gap-3">
+              <div className="flex items-center gap-3 min-w-0">
+                <TickerLogo ticker={ticker} color={color} size="md" />
+                <div className="min-w-0">
+                  <DialogTitle className="text-xl">{ticker}</DialogTitle>
+                  <p className="text-sm text-gray-500 truncate">
+                    {holding.name ?? ticker} ·{' '}
+                    <span
+                      className="font-medium"
+                      style={{ color: assetColor(aClass) }}
+                    >
+                      {assetLabel(aClass)}
+                    </span>
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setTradeOpen(true)}
+                className="shrink-0 px-3 py-1.5 rounded-full text-xs font-semibold bg-gray-900 text-white hover:bg-gray-800 transition-colors"
               >
-                <defs>
-                  <linearGradient id="sd-fill" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor={color} stopOpacity={0.35} />
-                    <stop offset="100%" stopColor={color} stopOpacity={0} />
-                  </linearGradient>
-                </defs>
-                <XAxis
-                  dataKey="date"
-                  axisLine={false}
-                  tickLine={false}
-                  tick={{ fill: '#9CA3AF', fontSize: 11 }}
-                  interval="preserveStartEnd"
-                  minTickGap={40}
-                />
-                <YAxis
-                  axisLine={false}
-                  tickLine={false}
-                  tick={{ fill: '#9CA3AF', fontSize: 11 }}
-                  tickFormatter={(v) => `$${(v / 1000).toFixed(1)}k`}
-                  width={50}
-                />
-                <Tooltip
-                  contentStyle={{
-                    background: '#111827',
-                    border: 'none',
-                    borderRadius: 8,
-                    color: 'white',
-                    fontSize: 12,
-                  }}
-                  formatter={(v: number) => [fmtMoney(v), 'Value']}
-                />
-                <Area
-                  type="monotone"
-                  dataKey="value"
-                  stroke={color}
-                  strokeWidth={2}
-                  fill="url(#sd-fill)"
-                />
-              </AreaChart>
-            </ResponsiveContainer>
-          ) : (
-            <div className="h-full flex items-center justify-center text-sm text-gray-400">
-              Not enough portfolio history yet — sync prices daily to populate
-              this chart.
+                Trade
+              </button>
             </div>
-          )}
-        </div>
-      </DialogContent>
-    </Dialog>
+          </DialogHeader>
+
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-4">
+            <div className="bg-gray-50 rounded-xl p-3">
+              <p className="text-[11px] text-gray-500">Price</p>
+              <p className="text-base font-semibold tabular-nums mt-0.5">
+                {fmtMoney(holding.current_price ?? 0)}
+              </p>
+            </div>
+            <div className="bg-gray-50 rounded-xl p-3">
+              <p className="text-[11px] text-gray-500">Shares</p>
+              <p className="text-base font-semibold tabular-nums mt-0.5">
+                {Number(holding.shares ?? 0).toLocaleString('en-US', {
+                  maximumFractionDigits: 4,
+                })}
+              </p>
+            </div>
+            <div className="bg-gray-50 rounded-xl p-3">
+              <p className="text-[11px] text-gray-500">Market value</p>
+              <p className="text-base font-semibold tabular-nums mt-0.5">
+                {fmtMoney(cv)}
+              </p>
+            </div>
+            <div className="bg-gray-50 rounded-xl p-3">
+              <p className="text-[11px] text-gray-500">% of portfolio</p>
+              <p className="text-base font-semibold tabular-nums mt-0.5">
+                {weight.toFixed(1)}%
+              </p>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3 mt-3">
+            <div
+              className={`rounded-xl p-4 ${
+                gain >= 0
+                  ? 'bg-emerald-50 border border-emerald-100'
+                  : 'bg-rose-50 border border-rose-100'
+              }`}
+            >
+              <p className="text-[11px] uppercase tracking-wide text-gray-600">
+                Unrealized Gain / Loss
+              </p>
+              <div
+                className={`flex items-center gap-2 mt-0.5 ${gain >= 0 ? 'text-emerald-700' : 'text-rose-700'}`}
+              >
+                {gain >= 0 ? (
+                  <TrendingUp className="w-4 h-4" />
+                ) : (
+                  <TrendingDown className="w-4 h-4" />
+                )}
+                <p className="text-lg font-bold tabular-nums">
+                  {gain >= 0 ? '+' : '−'}
+                  {fmtMoney(Math.abs(gain))}
+                </p>
+                <span className="text-sm tabular-nums opacity-80">
+                  ({fmtPct(gainPct, { withSign: true, decimals: 2 })})
+                </span>
+              </div>
+              <p className="text-[11px] text-gray-500 mt-1">
+                Cost basis {fmtMoney(cost)} ·{' '}
+                {fmtMoney(holding.avg_cost_basis ?? 0)} per share
+              </p>
+            </div>
+
+            <div className="rounded-xl p-4 bg-gray-50 border border-gray-100">
+              <p className="text-[11px] uppercase tracking-wide text-gray-600">
+                Period change
+              </p>
+              <div
+                className={`flex items-center gap-2 mt-0.5 ${periodChange >= 0 ? 'text-emerald-700' : 'text-rose-700'}`}
+              >
+                {periodChange >= 0 ? (
+                  <TrendingUp className="w-4 h-4" />
+                ) : (
+                  <TrendingDown className="w-4 h-4" />
+                )}
+                <p className="text-lg font-bold tabular-nums">
+                  {periodChange >= 0 ? '+' : '−'}
+                  {fmtMoney(Math.abs(periodChange))}
+                </p>
+                <span className="text-sm tabular-nums opacity-80">
+                  ({fmtPct(periodPct, { withSign: true, decimals: 2 })})
+                </span>
+              </div>
+              <p className="text-[11px] text-gray-500 mt-1">
+                Estimated from your portfolio history (last{' '}
+                {Math.max(data.length, 1)} days)
+              </p>
+            </div>
+          </div>
+
+          <div className="mt-4">
+            <p className="text-[11px] font-medium text-gray-500 mb-2">
+              Price chart
+            </p>
+            <div className="h-[260px] rounded-xl border border-gray-100 overflow-hidden bg-white">
+              <MarketChart
+                ticker={ticker}
+                basePrice={basePx}
+                color={color}
+                assetClass={aClass}
+                height={260}
+                mode={fundLike ? 'daily-nav' : 'live'}
+              />
+            </div>
+          </div>
+
+        </DialogContent>
+      </Dialog>
+
+      <TradeDialog
+        open={tradeOpen}
+        onOpenChange={setTradeOpen}
+        ticker={ticker}
+        name={holding.name ?? ticker}
+        apiPrice={Number(holding.current_price ?? 0)}
+        assetClass={aClass}
+        ownedShares={Number(holding.shares ?? 0)}
+        color={color}
+        onTraded={async () => {
+          await onTraded?.();
+          setTradeOpen(false);
+        }}
+      />
+    </>
   );
 }
