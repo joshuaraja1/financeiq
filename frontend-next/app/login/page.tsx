@@ -3,7 +3,8 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/auth-context';
-import { Sparkles, Loader2 } from 'lucide-react';
+import { Sparkles, Loader2, ArrowRight } from 'lucide-react';
+import Link from 'next/link';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -51,6 +52,7 @@ export default function LoginPage() {
         </div>
 
         <div className="bg-white rounded-3xl shadow-xl border border-gray-100 p-7">
+          <Link href="/demo" className="mb-6 flex w-full items-center justify-between gap-3 rounded-2xl bg-gradient-to-r from-indigo-600 to-purple-600 px-5 py-4 text-white shadow-md shadow-indigo-500/20 transition hover:brightness-110"><span><strong className="block text-sm">Explore the demo</strong><span className="text-xs text-indigo-100">Skip sign-in and browse a sample portfolio</span></span><ArrowRight className="h-5 w-5 shrink-0" /></Link>
           <div className="flex items-center bg-gray-100 rounded-full p-1 mb-6">
             <button
               type="button"
