@@ -25,7 +25,9 @@ export default function LoginPage() {
     setError(null);
     const fn = mode === 'signin' ? signIn : signUp;
     const { error: err } = await fn(email, password);
-    if (err) setError(err.message);
+    if (err) setError(err.message === 'Failed to fetch'
+      ? 'Sign-in is temporarily unavailable. You can still explore the demo without an account.'
+      : err.message);
     else if (mode === 'signup')
       setError("Check your email to verify your account, then sign in.");
     setBusy(false);
